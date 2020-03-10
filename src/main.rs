@@ -31,7 +31,7 @@ impl FromStr for reqType {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let req_string = s.clone();
-        let req: req = serde_json::from_str(&req_string).unwrap();
+        let req: req = serde_json::from_str(&req_string).expect("parsing response panicked");
         match req.method.as_str() {
             "getmanifest" => Ok(GetManifest(req)),
             "init" => Ok(Init(req)),
@@ -79,35 +79,41 @@ impl Manifest {
 }
 
 fn main() {
-    let stdin = stdin();
-    let mut buf = String::new();
-    // log stuff to file (that already exists)
-    /*let mut plugin_log = OpenOptions::new().write(true)
-        .open("/tmp/pluginlog")
-        .unwrap();
-    */
-
     loop {
+        // TODO: remove sleep
         let millisec = time::Duration::from_millis(100);
         thread::sleep(millisec);
 
-        match stdin.read_line(&mut buf) {
-            //Ok(0) => continue,
+        let stdin = stdin();
+        let mut buf =  String::new();
+
+        let read = stdin.read_line(&mut buf);
+        let v : Vec<&str> = buf.split("\n").collect();
+        let s = v[0].to_string();
+
+        // log lightning requests to a file
+        let mut plugin_log = OpenOptions::new().append(true)
+            .open("/tmp/pluginlog")
+            .unwrap();
+        let res = plugin_log.write(serde_json::to_string(&buf)
+            .unwrap()
+            .as_bytes())
+            .unwrap();
+
+        match read {
+
             Ok(w) => {
-                if w == 0 {
+                // getting "\n" from c-lightning: ignore if less than 2 bytes
+                if w < 2 {
                     continue;
                 }
-                //let get_manifest: req = serde_json::from_str(&buf).unwrap();
-                let rType = reqType::from_str(&buf).unwrap();
+
+                let rType = reqType::from_str(&s).unwrap();
                 match rType {
                     GetManifest(r) => {
                         let id = r.id as u64;
 
-                        /*let res = plugin_log.write(serde_json::to_string(&r)
-                        .unwrap()
-                        .as_bytes())
-                        .unwrap();*/
-
+                        // dummy rpcmethod
                         let hello = rpcMethod {
                             name: "hello".to_string(),
                             usage: "lightning-cli hello".to_string(),
@@ -119,26 +125,22 @@ fn main() {
                             jsonrpc: "2.0".to_string(),
                             id,
                             error: None,
-                            result: Some(serde_json::to_value(manifest).unwrap()),
+                            result: Some(serde_json::to_value(manifest).expect("serializing manifest")),
                         })
-                        .unwrap();
+                        .expect("to_value for response");
 
-                        println!("{}", serde_json::to_string(&response).unwrap());
+                        println!("{}", serde_json::to_string(&response).expect("serializing response to get manifest"));
                         stdout().flush();
                     }
 
                     Init(r) => {
-                        /*let res = plugin_log.write(serde_json::to_string(&r)
-                        .unwrap()
-                        .as_bytes())
-                        .unwrap();*/
-
+                        // empty response for init
                         let response = resp {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
                             error: None,
                             result: Some(serde_json::json!("{}")),
-                        }; // empty init response
+                        };
 
                         println!("{}", serde_json::to_string(&response).unwrap());
                         stdout().flush();

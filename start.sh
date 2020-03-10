@@ -1,5 +1,6 @@
 #!/bin/bash
 
+export RUST_BACKTRACE=full
 
 #create new plugin log file
 rm /tmp/pluginlog
@@ -27,3 +28,9 @@ lightningd --daemon --network=regtest --lightning-dir=/tmp/l2 --bind-addr=/tmp/l
 alias l1="lightning-cli --network=regtest --lightning-dir=/tmp/l1"
 alias l2="lightning-cli --network=regtest --lightning-dir=/tmp/l2"
 alias bcli="bitcoin-cli -regtest"
+
+
+# to debug plugin:
+# $ mkfifo test
+# $ RUST_BACKTRACE=1 ./target/debug/ln < test
+
