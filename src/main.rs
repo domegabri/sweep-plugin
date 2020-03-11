@@ -85,23 +85,22 @@ fn main() {
         thread::sleep(millisec);
 
         let stdin = stdin();
-        let mut buf =  String::new();
+        let mut buf = String::new();
 
         let read = stdin.read_line(&mut buf);
-        let v : Vec<&str> = buf.split("\n").collect();
+        let v: Vec<&str> = buf.split("\n").collect();
         let s = v[0].to_string();
 
         // log lightning requests to a file
-        let mut plugin_log = OpenOptions::new().append(true)
+        let mut plugin_log = OpenOptions::new()
+            .append(true)
             .open("/tmp/pluginlog")
             .unwrap();
-        let res = plugin_log.write(serde_json::to_string(&buf)
-            .unwrap()
-            .as_bytes())
+        let res = plugin_log
+            .write(serde_json::to_string(&buf).unwrap().as_bytes())
             .unwrap();
 
         match read {
-
             Ok(w) => {
                 // getting "\n" from c-lightning: ignore if less than 2 bytes
                 if w < 2 {
@@ -125,11 +124,17 @@ fn main() {
                             jsonrpc: "2.0".to_string(),
                             id,
                             error: None,
-                            result: Some(serde_json::to_value(manifest).expect("serializing manifest")),
+                            result: Some(
+                                serde_json::to_value(manifest).expect("serializing manifest"),
+                            ),
                         })
                         .expect("to_value for response");
 
-                        println!("{}", serde_json::to_string(&response).expect("serializing response to get manifest"));
+                        println!(
+                            "{}",
+                            serde_json::to_string(&response)
+                                .expect("serializing response to get manifest")
+                        );
                         stdout().flush();
                     }
 
@@ -145,7 +150,17 @@ fn main() {
                         println!("{}", serde_json::to_string(&response).unwrap());
                         stdout().flush();
                     }
-                    Other(r) => {}
+                    Other(r) => {
+                        // assume other is passthrough for plugin
+                        let response = resp {
+                            jsonrpc: "2.0".to_string(),
+                            id: r.id as u64,
+                            error: None,
+                            result: Some(serde_json::json!({"response":"my first plugin"})),
+                        };
+                        println!("{}", serde_json::to_string(&response).unwrap());
+                        stdout().flush();
+                    }
                 }
             }
 
