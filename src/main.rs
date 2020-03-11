@@ -9,7 +9,6 @@ use std::io::stdin;
 use std::io::stdout;
 use std::io::Write;
 use std::str::FromStr;
-use std::{thread, time};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct req {
@@ -80,9 +79,6 @@ impl Manifest {
 
 fn main() {
     loop {
-        // TODO: remove sleep
-        let millisec = time::Duration::from_millis(100);
-        thread::sleep(millisec);
 
         let stdin = stdin();
         let mut buf = String::new();
