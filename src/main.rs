@@ -79,7 +79,6 @@ impl Manifest {
 
 fn main() {
     loop {
-
         let stdin = stdin();
         let mut buf = String::new();
 
@@ -135,6 +134,9 @@ fn main() {
                     }
 
                     Init(r) => {
+                        let config = r.params.get("configuration").unwrap();
+                        let lightningDir = config.get("lightning-dir").unwrap().as_str().unwrap();
+                        let lightningRpc = config.get("rpc-file").unwrap().as_str().unwrap();
                         // empty response for init
                         let response = resp {
                             jsonrpc: "2.0".to_string(),
