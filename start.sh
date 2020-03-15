@@ -5,7 +5,7 @@ export RUST_BACKTRACE=full
 #create new plugin log file
 rm /tmp/pluginlog
 touch /tmp/pluginlog
-export PLUGIN=/home/dgabriele/dev/ln/target/debug/ln
+export PLUGIN=$PWD/target/debug/simpleplugin
 
 # start bitcoind 
 bitcoind -regtest --daemon
