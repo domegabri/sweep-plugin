@@ -1,3 +1,5 @@
+pub mod utils;
+
 use crate::reqType::{GetManifest, Init, Other};
 use serde::{Deserialize, Serialize};
 use serde_json;
