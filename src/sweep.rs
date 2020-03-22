@@ -19,8 +19,6 @@ use std::error::Error;
 use bitcoin::hashes::hex::ToHex;
 use std::str::FromStr;
 
-pub struct SweepResponse(Response);
-
 #[derive(Debug)]
 pub struct SweepData {
     private_key: PrivateKey,

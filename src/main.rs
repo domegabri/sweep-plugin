@@ -1,4 +1,4 @@
-pub mod utils;
+pub mod sweep;
 
 use crate::reqType::{GetManifest, Init, Other};
 use serde::{Deserialize, Serialize};
