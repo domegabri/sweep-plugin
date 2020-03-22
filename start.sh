@@ -8,7 +8,7 @@ touch /tmp/pluginlog
 export PLUGIN=$PWD/target/debug/simpleplugin
 
 # start bitcoind 
-bitcoind -regtest --daemon
+bitcoind -regtest -txindex --daemon
 # node 1: datadir and config
 mkdir /tmp/l1
 echo log-level=debug >> /tmp/l1/config
