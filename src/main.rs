@@ -1,6 +1,6 @@
 pub mod sweep;
 
-use crate::reqType::{GetManifest, Init, Other};
+use crate::reqType::{GetManifest, Init, Sweep};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::to_value;
@@ -24,7 +24,7 @@ pub struct req {
 pub enum reqType {
     GetManifest(req),
     Init(req),
-    Other(req),
+    Sweep(req),
 }
 
 impl FromStr for reqType {
@@ -36,7 +36,8 @@ impl FromStr for reqType {
         match req.method.as_str() {
             "getmanifest" => Ok(GetManifest(req)),
             "init" => Ok(Init(req)),
-            _ => Ok(Other(req)),
+            "sweep" => Ok(Sweep(req)),
+            _ => unreachable!()
         }
     }
 }
@@ -54,6 +55,16 @@ pub struct rpcMethod {
     name: String,
     usage: String,
     description: String,
+}
+
+impl rpcMethod {
+    pub fn sweep() -> rpcMethod {
+        rpcMethod {
+            name: "sweep".to_string(),
+            usage: "lightning-cli sweep privatekey destinationaddress [feerate]".to_string(),
+            description: "Command to sweep coins from a wif private key".to_string(),
+        }
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -89,13 +100,13 @@ fn main() {
         let s = v[0].to_string();
 
         // log lightning requests to a file
-        let mut plugin_log = OpenOptions::new()
+        /*let mut plugin_log = OpenOptions::new()
             .append(true)
             .open("/tmp/pluginlog")
             .unwrap();
         let res = plugin_log
             .write(serde_json::to_string(&buf).unwrap().as_bytes())
-            .unwrap();
+            .unwrap();*/
 
         match read {
             Ok(w) => {
@@ -108,14 +119,7 @@ fn main() {
                 match rType {
                     GetManifest(r) => {
                         let id = r.id as u64;
-
-                        // dummy rpcmethod
-                        let hello = rpcMethod {
-                            name: "hello".to_string(),
-                            usage: "lightning-cli hello".to_string(),
-                            description: "dummy method".to_string(),
-                        };
-                        let manifest = Manifest::new(hello);
+                        let manifest = Manifest::new(rpcMethod::sweep());
 
                         let response = serde_json::to_value(resp {
                             jsonrpc: "2.0".to_string(),
@@ -150,13 +154,12 @@ fn main() {
                         println!("{}", serde_json::to_string(&response).unwrap());
                         stdout().flush();
                     }
-                    Other(r) => {
-                        // assume other is passthrough for plugin
+                    Sweep(r) => {
                         let response = resp {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
                             error: None,
-                            result: Some(serde_json::json!({"response":"my first plugin"})),
+                            result: Some(r.params),
                         };
                         println!("{}", serde_json::to_string(&response).unwrap());
                         stdout().flush();
