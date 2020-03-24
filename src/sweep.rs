@@ -73,7 +73,7 @@ impl SweepData {
         })
     }
 
-    pub fn signed_tx(&self, dest: Address) -> Result<Transaction, Box<dyn Error>> {
+    pub fn sweep(&self, dest: Address) -> Result<Transaction, Box<dyn Error>> {
         let secp = Secp256k1::new();
         let dest_script = dest.script_pubkey();
         let dest_value = self.utxo.value;
@@ -152,7 +152,7 @@ mod tests {
 
         let dest_address = Address::from_str("2MuoLNztiorA56ea1pUGrqVudJb7hLG4kq4").unwrap();
 
-        let tx = sweep_data.signed_tx(dest_address).unwrap();
+        let tx = sweep_data.sweep(dest_address).unwrap();
         let hex = bitcoin::consensus::serialize(&tx).to_hex();
 
         println!("{:?}", hex);
