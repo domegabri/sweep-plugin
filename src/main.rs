@@ -1,6 +1,6 @@
 pub mod sweep;
 
-use crate::reqType::{GetManifest, Init, Sweep};
+use crate::rpcRequestType::{GetManifest, Init, Sweep};
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::to_value;
@@ -21,13 +21,13 @@ pub struct req {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum reqType {
+pub enum rpcRequestType {
     GetManifest(req),
     Init(req),
     Sweep(req),
 }
 
-impl FromStr for reqType {
+impl FromStr for rpcRequestType {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
@@ -48,6 +48,19 @@ pub struct resp {
     id: u64,
     result: Option<Value>,
     error: Option<Value>,
+}
+
+impl resp {
+    pub fn error(id: u64, error: String) -> resp {
+        let v = serde_json::json!({ "error": error });;
+        resp {
+            jsonrpc: "2.0".to_string(),
+            id: id,
+            result: None,
+            error: Some(v),
+        }
+
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -115,7 +128,7 @@ fn main() {
                     continue;
                 }
 
-                let rType = reqType::from_str(&s).unwrap();
+                let rType = rpcRequestType::from_str(&s).unwrap();
                 match rType {
                     GetManifest(r) => {
                         let id = r.id as u64;
@@ -155,6 +168,22 @@ fn main() {
                         stdout().flush();
                     }
                     Sweep(r) => {
+
+                        let params = r.params.as_array().unwrap();
+                        // function that takes &Vec<Value> (request params) and returns a response, with results or errors.
+                        // Later println! request to stdout
+                        if (params.len() < 2) {
+                            let response = resp::error(r.id, format!("missing parameters: expected 2, found {}", params.len()));
+                            println!("{}", serde_json::to_string(&response).unwrap());
+                            stdout().flush();
+                            continue; // TODO: is this correct?
+                        } else if (params.len() > 2) {
+                            let response = resp::error(r.id, "too many parameters".to_string());
+                            println!("{}", serde_json::to_string(&response).unwrap());
+                            stdout().flush();
+                            continue;
+                        }
+
                         let response = resp {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
