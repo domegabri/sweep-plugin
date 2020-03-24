@@ -1,7 +1,9 @@
 pub mod sweep;
+pub mod util;
 
-use crate::rpcRequestType::{GetManifest, Init, Sweep};
-use serde::{Deserialize, Serialize};
+use crate::util::rpcRequestType;
+use crate::util::rpcRequestType::{GetManifest, Init, Sweep};
+use crate::util::{req, resp, rpcMethod, Manifest};
 use serde_json;
 use serde_json::to_value;
 use serde_json::Value;
@@ -11,97 +13,6 @@ use std::io::stdin;
 use std::io::stdout;
 use std::io::Write;
 use std::str::FromStr;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct req {
-    jsonrpc: String,
-    id: u64,
-    method: String,
-    params: Value,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum rpcRequestType {
-    GetManifest(req),
-    Init(req),
-    Sweep(req),
-}
-
-impl FromStr for rpcRequestType {
-    type Err = ();
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        let req_string = s.clone();
-        let req: req = serde_json::from_str(&req_string).expect("parsing response panicked");
-        match req.method.as_str() {
-            "getmanifest" => Ok(GetManifest(req)),
-            "init" => Ok(Init(req)),
-            "sweep" => Ok(Sweep(req)),
-            _ => unreachable!()
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct resp {
-    jsonrpc: String,
-    id: u64,
-    result: Option<Value>,
-    error: Option<Value>,
-}
-
-impl resp {
-    pub fn error(id: u64, error: String) -> resp {
-        let v = serde_json::json!({ "error": error });;
-        resp {
-            jsonrpc: "2.0".to_string(),
-            id: id,
-            result: None,
-            error: Some(v),
-        }
-
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct rpcMethod {
-    name: String,
-    usage: String,
-    description: String,
-}
-
-impl rpcMethod {
-    pub fn sweep() -> rpcMethod {
-        rpcMethod {
-            name: "sweep".to_string(),
-            usage: "lightning-cli sweep privatekey destinationaddress [feerate]".to_string(),
-            description: "Command to sweep coins from a wif private key".to_string(),
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Manifest {
-    options: Vec<Value>,
-    rpcmethods: Vec<rpcMethod>,
-    subscriptions: Vec<Value>,
-    hooks: Vec<Value>,
-    features: Value,
-    dynamic: bool,
-}
-
-impl Manifest {
-    fn new(method: rpcMethod) -> Manifest {
-        Manifest {
-            options: vec![],
-            rpcmethods: vec![method],
-            subscriptions: vec![],
-            hooks: vec![],
-            features: serde_json::json!("{}"),
-            dynamic: false,
-        }
-    }
-}
 
 fn main() {
     loop {
@@ -132,7 +43,7 @@ fn main() {
                 match rType {
                     GetManifest(r) => {
                         let id = r.id as u64;
-                        let manifest = Manifest::new(rpcMethod::sweep());
+                        let manifest = Manifest::new_for_method(rpcMethod::sweep());
 
                         let response = serde_json::to_value(resp {
                             jsonrpc: "2.0".to_string(),
@@ -168,12 +79,14 @@ fn main() {
                         stdout().flush();
                     }
                     Sweep(r) => {
-
                         let params = r.params.as_array().unwrap();
                         // function that takes &Vec<Value> (request params) and returns a response, with results or errors.
                         // Later println! request to stdout
                         if (params.len() < 2) {
-                            let response = resp::error(r.id, format!("missing parameters: expected 2, found {}", params.len()));
+                            let response = resp::error(
+                                r.id,
+                                format!("missing parameters: expected 2, found {}", params.len()),
+                            );
                             println!("{}", serde_json::to_string(&response).unwrap());
                             stdout().flush();
                             continue; // TODO: is this correct?
@@ -200,12 +113,3 @@ fn main() {
         }
     }
 }
-
-/* GET MANIFEST
- * {"jsonrpc":"2.0","id":3,"method":"getmanifest","params":{}}
- * test response:
- * {"error":null,"id":3,"jsonrpc":"2.0","result":{"rpcmethods":[{"description":"dummy method","name":"hello","usage":"lightnin-cli hello"}]}}
- *
- *
- *
- */
