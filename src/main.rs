@@ -1,3 +1,4 @@
+mod error;
 pub mod sweep;
 pub mod util;
 

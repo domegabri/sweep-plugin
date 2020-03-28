@@ -1,3 +1,4 @@
+use crate::error::PluginError;
 use serde::{Deserialize, Serialize};
 use serde_json;
 use serde_json::Value;
@@ -19,11 +20,11 @@ pub enum rpcRequestType {
 }
 
 impl FromStr for rpcRequestType {
-    type Err = ();
+    type Err = serde_json::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let req_string = s.clone();
-        let req: req = serde_json::from_str(&req_string).expect("parsing response panicked");
+        let req: req = serde_json::from_str(&req_string)?;
         match req.method.as_str() {
             "getmanifest" => Ok(rpcRequestType::GetManifest(req)),
             "init" => Ok(rpcRequestType::Init(req)),

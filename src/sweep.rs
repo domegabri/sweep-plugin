@@ -16,6 +16,7 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::error::Error;
 //use std::option::NoneError;
+use crate::error::PluginError;
 use bitcoin::hashes::hex::ToHex;
 use std::str::FromStr;
 
@@ -35,10 +36,10 @@ impl SweepData {
         }
     }
 
-    pub fn from_wif(wif_key: &str) -> Result<SweepData, Box<dyn Error>> {
+    pub fn from_wif(wif_key: &str) -> Result<SweepData, PluginError> {
         let secp = Secp256k1::new();
 
-        let private_key = PrivateKey::from_wif(&wif_key).unwrap();
+        let private_key = PrivateKey::from_wif(&wif_key)?;
         let pubkey = private_key.public_key(&secp);
         let address = Address::p2pkh(&pubkey, Network::Regtest);
         let script = address.script_pubkey();
@@ -48,17 +49,31 @@ impl SweepData {
             address.to_string()
         );
 
-        let url = Url::parse(&url_str)?;
+        let url = Url::parse(&url_str).ok().ok_or("Error parsing url")?;
         let response = get(url)?; // blocking
         let r = response.text()?;
         let mut j = Value::from_str(&r)?;
         // TODO: remove unwraps
-        // use std::option::NoneError with ok_or_else or only ?
-        let obj: &Value = &j.as_array_mut().unwrap()[0]; // Vec<Value>[0]
+        // use std::option::NoneError?
+        let obj: &Value = &j
+            .as_array_mut()
+            .ok_or("None found while unwrapping option")?[0]; // Vec<Value>[0]
 
-        let txid = obj.get("txid").unwrap().as_str().unwrap();
-        let vout = obj.get("vout").unwrap().as_u64().unwrap() as u32; // TODO: check for confirmation
-        let value = obj.get("value").unwrap().as_u64().unwrap();
+        let txid = obj
+            .get("txid")
+            .ok_or("Error getting key txid from object")?
+            .as_str()
+            .unwrap();
+        let vout = obj
+            .get("vout")
+            .ok_or("Error getting key vout from object")?
+            .as_u64()
+            .unwrap() as u32; // TODO: check for confirmation
+        let value = obj
+            .get("value")
+            .ok_or("Error getting key value from object")?
+            .as_u64()
+            .unwrap();
         let outpoint = bitcoin::OutPoint::from_str(format!("{}:{}", txid, vout).as_str())?;
 
         let utxo = TxOut {
@@ -73,7 +88,7 @@ impl SweepData {
         })
     }
 
-    pub fn sweep(&self, dest: Address) -> Result<Transaction, Box<dyn Error>> {
+    pub fn sweep(&self, dest: Address) -> Result<Transaction, PluginError> {
         let secp = Secp256k1::new();
         let dest_script = dest.script_pubkey();
         let dest_value = self.utxo.value;
@@ -97,7 +112,7 @@ impl SweepData {
         };
 
         let hash = tx.signature_hash(0, &self.utxo.script_pubkey, SigHashType::All as u32);
-        let msg = &bitcoin::secp256k1::Message::from_slice(&hash.into_inner()[..]).unwrap(); // to check
+        let msg = &bitcoin::secp256k1::Message::from_slice(&hash.into_inner()[..])?; // to check
         let k = &self.private_key.key;
         let signature = secp.sign(msg, k);
         let mut signature = signature.serialize_der().to_vec();
