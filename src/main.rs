@@ -2,20 +2,17 @@ mod error;
 pub mod sweep;
 pub mod util;
 
-use crate::util::rpcRequestType;
-use crate::util::rpcRequestType::{GetManifest, Init, Sweep};
-use crate::util::{req, resp, rpcMethod, Manifest};
+use crate::util::RpcRequestType;
+use crate::util::RpcRequestType::{GetManifest, Init, Sweep};
+use crate::util::{Manifest, RpcMethod, RpcResponse};
 use serde_json;
-use serde_json::to_value;
-use serde_json::Value;
-use std::fs::File;
-use std::fs::OpenOptions;
 use std::io::stdin;
 use std::io::stdout;
 use std::io::Write;
 use std::str::FromStr;
 
 fn main() {
+    //TODO refactor main return
     loop {
         let stdin = stdin();
         let mut buf = String::new();
@@ -31,13 +28,13 @@ fn main() {
                     continue;
                 }
 
-                let rType = rpcRequestType::from_str(&s).unwrap();
-                match rType {
+                let req_type = RpcRequestType::from_str(&s).unwrap();
+                match req_type {
                     GetManifest(r) => {
                         let id = r.id as u64;
-                        let manifest = Manifest::new_for_method(rpcMethod::sweep());
+                        let manifest = Manifest::new_for_method(RpcMethod::sweep());
 
-                        let response = serde_json::to_value(resp {
+                        let response = serde_json::to_value(RpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id,
                             error: None,
@@ -52,15 +49,15 @@ fn main() {
                             serde_json::to_string(&response)
                                 .expect("serializing response to get manifest")
                         );
-                        stdout().flush();
+                        stdout().flush().unwrap();
                     }
 
                     Init(r) => {
                         let config = r.params.get("configuration").unwrap();
-                        let lightningDir = config.get("lightning-dir").unwrap().as_str().unwrap();
-                        let lightningRpc = config.get("rpc-file").unwrap().as_str().unwrap();
+                        let _lightning_dir = config.get("lightning-dir").unwrap().as_str().unwrap();
+                        let _lightning_rpc = config.get("rpc-file").unwrap().as_str().unwrap();
                         // empty response for init
-                        let response = resp {
+                        let response = RpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
                             error: None,
@@ -68,40 +65,41 @@ fn main() {
                         };
 
                         println!("{}", serde_json::to_string(&response).unwrap());
-                        stdout().flush();
+                        stdout().flush().unwrap();
                     }
                     Sweep(r) => {
                         let params = r.params.as_array().unwrap();
                         // function that takes &Vec<Value> (request params) and returns a response, with results or errors.
                         // Later println! request to stdout
-                        if (params.len() < 2) {
-                            let response = resp::error(
+                        if params.len() < 2 {
+                            let response = RpcResponse::error(
                                 r.id,
                                 format!("missing parameters: expected 2, found {}", params.len()),
                             );
                             println!("{}", serde_json::to_string(&response).unwrap());
-                            stdout().flush();
+                            stdout().flush().unwrap();
                             continue; // TODO: is this correct?
-                        } else if (params.len() > 2) {
-                            let response = resp::error(r.id, "too many parameters".to_string());
+                        } else if params.len() > 2 {
+                            let response =
+                                RpcResponse::error(r.id, "too many parameters".to_string());
                             println!("{}", serde_json::to_string(&response).unwrap());
-                            stdout().flush();
+                            stdout().flush().unwrap();
                             continue;
                         }
 
-                        let response = resp {
+                        let response = RpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
                             error: None,
                             result: Some(r.params),
                         };
                         println!("{}", serde_json::to_string(&response).unwrap());
-                        stdout().flush();
+                        stdout().flush().unwrap();
                     }
                 }
             }
 
-            Err(e) => panic!("failed to read plugin stdin"),
+            Err(_e) => panic!("failed to read plugin stdin"),
         }
     }
 }

@@ -1,6 +1,6 @@
-use bitcoin::blockdata::{opcodes, script};
+use bitcoin::blockdata::script;
 use bitcoin::hashes::Hash; // trait
-use bitcoin::secp256k1::{self, Message, Secp256k1, SignOnly};
+use bitcoin::secp256k1::Secp256k1;
 use bitcoin::PrivateKey;
 use bitcoin::SigHashType;
 use bitcoin::Transaction;
@@ -8,16 +8,11 @@ use bitcoin::TxIn;
 use bitcoin::TxOut;
 use bitcoin::{Address, OutPoint};
 use bitcoin::{Network, Script};
-use reqwest::blocking::{get, Request, Response};
-use reqwest::blocking::{Client, ClientBuilder};
-use reqwest::{Method, Url};
-use serde::{Deserialize, Serialize};
+use reqwest::blocking::get;
+use reqwest::Url;
 use serde_json::Value;
-use std::collections::HashMap;
-use std::error::Error;
 //use std::option::NoneError;
 use crate::error::PluginError;
-use bitcoin::hashes::hex::ToHex;
 use std::str::FromStr;
 
 #[derive(Debug)]
@@ -97,7 +92,7 @@ impl SweepData {
             value: dest_value - 500 as u64, // TODO: allow to pass fee_rate
         };
 
-        let mut tx_in = TxIn {
+        let tx_in = TxIn {
             previous_output: self.outpoint,
             script_sig: Script::new(),
             sequence: u32::max_value(),
