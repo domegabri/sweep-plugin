@@ -24,15 +24,6 @@ fn main() {
         let v: Vec<&str> = buf.split("\n").collect();
         let s = v[0].to_string();
 
-        // log lightning requests to a file
-        /*let mut plugin_log = OpenOptions::new()
-            .append(true)
-            .open("/tmp/pluginlog")
-            .unwrap();
-        let res = plugin_log
-            .write(serde_json::to_string(&buf).unwrap().as_bytes())
-            .unwrap();*/
-
         match read {
             Ok(w) => {
                 // getting "\n" from c-lightning: ignore if less than 2 bytes
