@@ -2,6 +2,8 @@ mod error;
 pub mod sweep;
 pub mod util;
 
+use crate::error::PluginError;
+use crate::sweep::SweepData;
 use crate::util::RpcRequestType;
 use crate::util::RpcRequestType::{GetManifest, Init, Sweep};
 use crate::util::{Manifest, RpcMethod, RpcResponse};
@@ -85,6 +87,46 @@ fn main() {
                             println!("{}", serde_json::to_string(&response).unwrap());
                             stdout().flush().unwrap();
                             continue;
+                        }
+
+                        let priv_key = params[0].as_str().unwrap();
+                        let res = SweepData::from_wif(priv_key);
+                        if let Some(e) = res.err() {
+                            match e {
+                                PluginError::Message(msg) => {
+                                    println!(
+                                        "{}",
+                                        serde_json::to_string(&RpcResponse::error(r.id, msg))
+                                            .unwrap()
+                                    );
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                                PluginError::BitcoinKeyError(_e) => {
+                                    println!(
+                                        "{}",
+                                        serde_json::to_string(&RpcResponse::error(
+                                            r.id,
+                                            "bad private key".to_string()
+                                        ))
+                                        .unwrap()
+                                    );
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                                _ => {
+                                    println!(
+                                        "{}",
+                                        serde_json::to_string(&RpcResponse::error(
+                                            r.id,
+                                            "test error".to_string()
+                                        ))
+                                        .unwrap()
+                                    );
+                                    stdout().flush().unwrap();
+                                    continue;
+                                }
+                            }
                         }
 
                         let response = RpcResponse {
