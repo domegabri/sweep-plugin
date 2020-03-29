@@ -8,6 +8,8 @@ use crate::util::RpcRequestType;
 use crate::util::RpcRequestType::{GetManifest, Init, Sweep};
 use crate::util::{Manifest, RpcMethod, RpcResponse};
 use bitcoin::{Address, Transaction};
+use bitcoin::Txid;
+use bitcoin::hashes::hex::ToHex;
 use serde_json;
 use std::io::stdin;
 use std::io::stdout;
@@ -147,13 +149,15 @@ fn main() {
                             }
                         };
 
-
+                        let tx = sweep_data.sweep(dest_address).unwrap();
+                        let hex = bitcoin::consensus::serialize(&tx).to_hex();
+                        let id = tx.txid().to_hex();
 
                         let response = RpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
                             error: None,
-                            result: Some(r.params),
+                            result: Some(serde_json::json!({"txid": id, "hex": hex})),
                         };
                         println!("{}", serde_json::to_string(&response).unwrap());
                         stdout().flush().unwrap();
