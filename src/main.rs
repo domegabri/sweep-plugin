@@ -7,6 +7,7 @@ use crate::sweep::SweepData;
 use crate::util::RpcRequestType;
 use crate::util::RpcRequestType::{GetManifest, Init, Sweep};
 use crate::util::{Manifest, RpcMethod, RpcResponse};
+use bitcoin::{Address, Transaction};
 use serde_json;
 use std::io::stdin;
 use std::io::stdout;
@@ -91,8 +92,8 @@ fn main() {
 
                         let priv_key = params[0].as_str().unwrap();
                         let res = SweepData::from_wif(priv_key);
-                        if let Some(e) = res.err() {
-                            match e {
+                        if res.is_err() {
+                            match res.err().unwrap() {
                                 PluginError::Message(msg) => {
                                     println!(
                                         "{}",
@@ -129,6 +130,25 @@ fn main() {
                             }
                         }
 
+                        let sweep_data = res.ok().unwrap();
+                        let dest_address = match Address::from_str(r.params[1].as_str().unwrap()) {
+                            Ok(address) => address,
+                            Err(e) => {
+                                println!(
+                                    "{}",
+                                    serde_json::to_string(&RpcResponse::error(
+                                        r.id,
+                                        "invalid destination address".to_string()
+                                    ))
+                                    .unwrap()
+                                );
+                                stdout().flush().unwrap();
+                                continue;
+                            }
+                        };
+
+
+
                         let response = RpcResponse {
                             jsonrpc: "2.0".to_string(),
                             id: r.id as u64,
@@ -145,3 +165,5 @@ fn main() {
         }
     }
 }
+
+//pub fn process_sweep(sweep_data: SweepData) -> Result<bitcoin::Transaction, PluginError> {}
