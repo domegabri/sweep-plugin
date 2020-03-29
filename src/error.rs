@@ -3,7 +3,7 @@ use serde_json::Value;
 use From;
 
 pub enum PluginError {
-    Message(Value),
+    Message(String),
     Json(serde_json::Error),
     BitcoinSecpError(bitcoin::secp256k1::Error),
     BitcoinKeyError(bitcoin::util::key::Error),
@@ -13,8 +13,7 @@ pub enum PluginError {
 
 impl From<&'static str> for PluginError {
     fn from(e: &'static str) -> PluginError {
-        let error = serde_json::json!({ "error": e });
-        PluginError::Message(error)
+        PluginError::Message(e.to_string())
     }
 }
 
