@@ -3,6 +3,7 @@ use bitcoin::util::address;
 use serde_json::Value;
 use From;
 
+#[derive(Debug)]
 pub enum PluginError {
     Message(String),
     Json(serde_json::Error),
