@@ -1,4 +1,5 @@
 use bitcoin::blockdata::transaction::ParseOutPointError;
+use bitcoin::util::address;
 use serde_json::Value;
 use From;
 
@@ -8,6 +9,7 @@ pub enum PluginError {
     BitcoinSecpError(bitcoin::secp256k1::Error),
     BitcoinKeyError(bitcoin::util::key::Error),
     BitcoinOutpointError(ParseOutPointError),
+    BitcoinAddressError(address::Error),
     Http(reqwest::Error),
 }
 
@@ -38,6 +40,12 @@ impl From<bitcoin::util::key::Error> for PluginError {
 impl From<ParseOutPointError> for PluginError {
     fn from(e: ParseOutPointError) -> Self {
         PluginError::BitcoinOutpointError(e)
+    }
+}
+
+impl From<address::Error> for PluginError {
+    fn from(e: address::Error) -> Self {
+        PluginError::BitcoinAddressError(e)
     }
 }
 
