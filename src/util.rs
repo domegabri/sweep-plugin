@@ -18,6 +18,16 @@ pub enum RpcRequestType {
     Sweep(Req),
 }
 
+impl RpcRequestType {
+    pub fn id(&self) -> u64 {
+        match self {
+            RpcRequestType::GetManifest(r) => r.id,
+            RpcRequestType::Init(r) => r.id,
+            RpcRequestType::Sweep(r) => r.id,
+        }
+    }
+}
+
 impl FromStr for RpcRequestType {
     type Err = serde_json::Error;
 
