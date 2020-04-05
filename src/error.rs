@@ -1,7 +1,6 @@
 use crate::util::RpcResponse;
 use bitcoin::blockdata::transaction::ParseOutPointError;
 use bitcoin::util::address;
-use serde_json::Value;
 use From;
 
 #[derive(Debug)]

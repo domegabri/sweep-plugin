@@ -1,5 +1,5 @@
 [package]
-name = "simpleplugin"
+name = "sweep-plugin"
 version = "0.1.0"
 authors = ["dgabriele"]
 edition = "2018"
