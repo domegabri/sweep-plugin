@@ -63,9 +63,15 @@ impl PluginError {
             PluginError::Message(s) => RpcResponse::error(id, s.to_string()),
             PluginError::Json(_e) => RpcResponse::error(id, "json error".to_string()),
             PluginError::BitcoinSecpError(_e) => RpcResponse::error(id, "secp error".to_string()),
-            PluginError::BitcoinKeyError(_e) => RpcResponse::error(id, "bad private key".to_string()),
-            PluginError::BitcoinOutpointError(_e) => RpcResponse::error(id, "error parsing outpoint".to_string()),
-            PluginError::BitcoinAddressError(_e) => RpcResponse::error(id, "error parsing outpoint".to_string()),
+            PluginError::BitcoinKeyError(_e) => {
+                RpcResponse::error(id, "bad private key".to_string())
+            }
+            PluginError::BitcoinOutpointError(_e) => {
+                RpcResponse::error(id, "error parsing outpoint".to_string())
+            }
+            PluginError::BitcoinAddressError(_e) => {
+                RpcResponse::error(id, "address not valid".to_string())
+            }
             PluginError::Http(_e) => RpcResponse::error(id, "http request error".to_string()), //TODO: give more http error info
         }
     }
