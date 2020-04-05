@@ -14,6 +14,7 @@ use serde_json::Value;
 //use std::option::NoneError;
 use crate::error::PluginError;
 use std::str::FromStr;
+use std::u64;
 
 #[derive(Debug)]
 pub struct SweepData {
@@ -90,7 +91,7 @@ impl SweepData {
         })
     }
 
-    pub fn sweep(&self, dest: Address) -> Result<Transaction, PluginError> {
+    pub fn sweep(&self, dest: Address, sat_byte: u64) -> Result<Transaction, PluginError> {
         let secp = Secp256k1::new();
         let dest_script = dest.script_pubkey();
         let mut dest_value: u64 = 0;
@@ -110,14 +111,21 @@ impl SweepData {
                 witness: Vec::new(),
             };
             tx.input.push(tx_in);
-            dest_value += self.utxo[i].value
+            dest_value = dest_value + self.utxo[i].value;
         }
 
-        let dest_out = TxOut {
+        let mut dest_out = TxOut {
             script_pubkey: dest_script.clone(),
-            value: dest_value - 500 as u64, // TODO: allow to pass fee_rate
+            value: 0u64,
         };
 
+        let fee = sat_byte *( 10 + 147*(tx.input.len() as u64) + 32 );
+        let value: u64 = dest_value.checked_sub(fee).ok_or("Overflow error, fee_rate too high")?;
+        if value < 546u64 {
+            return Err(PluginError::Message("Transaction fees are too high".to_string()));
+        }
+
+        dest_out.value = value;
         tx.output.push(dest_out);
 
         //sign inputs
@@ -156,6 +164,16 @@ mod tests {
     }
 
     #[test]
+    pub fn test_fee_rate() {
+        let mut x = 10u64;
+        let mut result = 20u64;
+        let mut json = serde_json::json!(["value", 5]);
+        let mut value = json.as_array_mut().ok_or("error").unwrap();
+        let value_u64 = value[1].as_u64().unwrap();
+        let result = x.checked_sub(value_u64).ok_or("error").unwrap();
+        println!("{:?}", result);
+    }
+
     pub fn test_tx() {
         let secp = Secp256k1::new();
         let private =
@@ -170,7 +188,7 @@ mod tests {
 
         let utxo = TxOut {
             script_pubkey: script,
-            value: 100000000 as u64,
+            value: 100000000u64,
         };
 
         let sweep_data = SweepData::new(private, utxo, outpoint);
@@ -179,7 +197,7 @@ mod tests {
 
         let dest_address = Address::from_str("2MuoLNztiorA56ea1pUGrqVudJb7hLG4kq4").unwrap();
 
-        let tx = sweep_data.sweep(dest_address).unwrap();
+        let tx = sweep_data.sweep(dest_address, 2u64).unwrap();
         let hex = bitcoin::consensus::serialize(&tx).to_hex();
 
         println!("{:?}", hex);

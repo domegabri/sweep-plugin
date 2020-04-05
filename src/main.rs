@@ -86,18 +86,22 @@ pub fn process_request(request_type: &RpcRequestType) -> Result<RpcResponse, Plu
                     "missing parameters: expected 2, found {}",
                     params.len()
                 )));
-            } else if params.len() > 2 {
+            } else if params.len() > 3 {
                 return Err(PluginError::Message("too many parameters".to_string()));
             }
 
             let priv_key = params[0].as_str().ok_or("error parsing privkey param")?;
             let sweep_data = SweepData::from_wif(priv_key)?;
 
-            let addr = r.params[1].as_str().ok_or("error parsing address param")?;
-
+            let addr = params[1].as_str().ok_or("error parsing address param")?;
             let dest_address = Address::from_str(addr)?;
 
-            let tx = sweep_data.sweep(dest_address)?;
+            let mut fee_rate = 5u64; // default fee rate 5 sat/byte
+            if params.len() == 3 {
+                fee_rate = params[2].as_u64().ok_or("error parsing fee rate param")?;
+            }
+
+            let tx = sweep_data.sweep(dest_address, fee_rate)?;
             let hex = bitcoin::consensus::serialize(&tx).to_hex();
             let id = tx.txid().to_hex();
 

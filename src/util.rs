@@ -74,7 +74,7 @@ impl RpcMethod {
     pub fn sweep() -> RpcMethod {
         RpcMethod {
             name: "sweep".to_string(),
-            usage: "privatekey destinationaddress [feerate]".to_string(),
+            usage: "privatekey destinationaddress [feerate sat/byte]".to_string(),
             description: "Command to sweep coins from a wif private key".to_string(),
         }
     }
