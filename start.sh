@@ -13,7 +13,7 @@ export RUST_BACKTRACE=full
 #create new plugin log file
 rm /tmp/pluginlog
 touch /tmp/pluginlog
-export PLUGIN=$PWD/target/debug/simpleplugin
+export PLUGIN=$PWD/target/debug/sweep-plugin
 
 # start bitcoind 
 bitcoind -$NETWORK -txindex --daemon
