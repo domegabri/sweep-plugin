@@ -49,46 +49,52 @@ impl SweepData {
         let response = get(url)?; // blocking
         let r = response.text()?;
         let mut j = Value::from_str(&r)?;
-        // TODO: remove unwraps
-        // use std::option::NoneError?
         let obj = j
             .as_array_mut()
             .ok_or("None found while unwrapping option")?; // Vec<Value>
 
-        let mut utxos: Vec<TxOut> = Vec::with_capacity(obj.len());
-        let mut outpoints: Vec<OutPoint> = Vec::with_capacity(obj.len());
+        let sweep_data = match obj.len() {
+            0usize => Err(PluginError::Message("no utxos found".to_string())),
+            x => {
+                let mut utxos: Vec<TxOut> = Vec::with_capacity(x);
+                let mut outpoints: Vec<OutPoint> = Vec::with_capacity(x);
 
-        for o in obj {
-            let txid = o
-                .get("txid")
-                .ok_or("Error getting key txid from object")?
-                .as_str()
-                .unwrap();
-            let vout = o
-                .get("vout")
-                .ok_or("Error getting key vout from object")?
-                .as_u64()
-                .unwrap() as u32; // TODO: check for confirmation
-            let value = o
-                .get("value")
-                .ok_or("Error getting key value from object")?
-                .as_u64()
-                .unwrap();
-            let outpoint = bitcoin::OutPoint::from_str(format!("{}:{}", txid, vout).as_str())?;
-            outpoints.push(outpoint);
+                for o in obj {
+                    let txid = o
+                        .get("txid")
+                        .ok_or("Error getting key txid from object")?
+                        .as_str()
+                        .unwrap();
+                    let vout = o
+                        .get("vout")
+                        .ok_or("Error getting key vout from object")?
+                        .as_u64()
+                        .unwrap() as u32; // TODO: check for confirmation
+                    let value = o
+                        .get("value")
+                        .ok_or("Error getting key value from object")?
+                        .as_u64()
+                        .unwrap();
+                    let outpoint =
+                        bitcoin::OutPoint::from_str(format!("{}:{}", txid, vout).as_str())?;
+                    outpoints.push(outpoint);
 
-            let utxo = TxOut {
-                script_pubkey: script.clone(),
-                value: value,
-            };
-            utxos.push(utxo);
-        }
+                    let utxo = TxOut {
+                        script_pubkey: script.clone(),
+                        value: value,
+                    };
+                    utxos.push(utxo);
+                }
 
-        Ok(SweepData {
-            private_key,
-            utxo: utxos,
-            outpoint: outpoints,
-        })
+                Ok(SweepData {
+                    private_key,
+                    utxo: utxos,
+                    outpoint: outpoints,
+                })
+            }
+        };
+
+        sweep_data
     }
 
     pub fn sweep(&self, dest: Address, sat_byte: u64) -> Result<Transaction, PluginError> {
@@ -119,11 +125,11 @@ impl SweepData {
             value: 0u64,
         };
 
-        let fee = sat_byte *( 10 + 147*(tx.input.len() as u64) + 32 );
-        let value: u64 = dest_value.checked_sub(fee).ok_or("Overflow error, fee_rate too high")?;
-        if value < 546u64 {
-            return Err(PluginError::Message("Transaction fees are too high".to_string()));
-        }
+        let fee = sat_byte * (10 + 147 * (tx.input.len() as u64) + 32);
+        let value: u64 = dest_value
+            .checked_sub(fee)
+            .ok_or("Overflow error, fee_rate too high")?;
+        //TODO: check for dust
 
         dest_out.value = value;
         tx.output.push(dest_out);
@@ -161,6 +167,16 @@ mod tests {
         let sweep_data =
             SweepData::from_wif("cUXdF9YgyfNCAXTwyuBknt6PVU1ASMJyqPFxeTLcQTfQLxfFGZrx").unwrap();
         println!("{:?}", sweep_data.utxo);
+    }
+
+    #[test]
+    pub fn test_no_utxos() {
+        let sweep_data_empty =
+            SweepData::from_wif("cQSmqDe1a2YRYbw69133GCy9QdMd1RjqRQG8SLfHeN747m63FxsU");
+        match sweep_data_empty {
+            Ok(_) => println!("no error"),
+            Err(e) => println!("{}", serde_json::to_string(&e.get_rpc_error(1u64)).unwrap()),
+        }
     }
 
     #[test]
