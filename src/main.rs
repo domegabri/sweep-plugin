@@ -95,6 +95,7 @@ pub fn process_request(request_type: &RpcRequestType) -> Result<RpcResponse, Plu
 
             let addr = params[1].as_str().ok_or("error parsing address param")?;
             let dest_address = Address::from_str(addr)?;
+            sweep_data.network(&dest_address)?;
 
             let fee_rate = match params.len() {
                 3 => params[2].as_u64().ok_or("error parsing fee rate param")?,

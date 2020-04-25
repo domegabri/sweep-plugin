@@ -40,8 +40,15 @@ impl SweepData {
         let address = Address::p2pkh(&pubkey, Network::Regtest);
         let script = address.script_pubkey();
 
+        let net_string = match private_key.network {
+            bitcoin::Network::Bitcoin => "",
+            bitcoin::Network::Testnet => "testnet/",
+            bitcoin::Network::Regtest => "regtest/",
+        };
+
         let url_str = format!(
-            "https://blockstream.info/testnet/api/address/{}/utxo",
+            "https://blockstream.info/{}api/address/{}/utxo",
+            net_string.to_string(),
             address.to_string()
         );
 
@@ -153,6 +160,18 @@ impl SweepData {
         }
 
         Ok(tx)
+    }
+
+    pub fn network(&self, dest: &Address) -> Result<(), PluginError> {
+        let key_network = self.private_key.network;
+        let address_network = dest.network;
+        if key_network != address_network {
+            return Err(PluginError::Message(
+                "key network and address network don't match".to_string(),
+            ));
+        } else {
+            return Ok(());
+        }
     }
 }
 
