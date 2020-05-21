@@ -1,6 +1,4 @@
-This plugin adds the sweep rpc method to sweep paper wallets.
-
-Currently working in testnet (uses blockstream.info API).
+This plugin adds the sweep rpc method to sweep paper wallets (uses blockstream.info API).
 
 To build:
 
